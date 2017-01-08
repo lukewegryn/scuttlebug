@@ -52,19 +52,25 @@ def get_scuttlebug(intent):
     elif "value" in intent["slots"]["ZipCode"]:
         city_id = str(intent["slots"]["ZipCode"]["value"])
         
-    response = urllib2.urlopen('http://api.eventful.com/rest/events/search?app_key='+app_key+'&location='+city_id+'&sort_order=popularity&page_size=5&date=Today&within='+radius)
+    response = urllib2.urlopen('http://api.eventful.com/rest/events/search?app_key='+app_key+'&sort_direction=descending&location='+city_id+'&sort_order=popularity&page_size=50&date=Today&within='+radius)
     root = ET.fromstring(response.read())
 
-    numberOfEvents = len(root[8])
+    max_events = 5
+    numberOfEvents = max_events
+    if len(root[8]) < max_events:
+        numberOfEvents = len(root[8])
     state = root[8][0].find('region_name').text
     city = root[8][0].find('city_name').text
-    speech_output = 'Here are the ' + str(len(root[8])) + ' most popular events going on in ' + city + ', ' + state + ' today.\n '
+    speech_output = 'Here are the ' + str(numberOfEvents) + ' most popular events going on in ' + city + ', ' + state + ' today.\n '
     counter = 1
     for event in root[8]:
         speech_output += '' + str(counter) + '. ' + event.find('title').text.split(':')[0] + '.\n ' 
          #[event.find('title').text.split(':')[0], event.find('description').text, event.find('start_time').text]
         session_attributes[counter]=event.attrib['id'].split('@')[0]
+        if counter == max_events:
+            break
         counter += 1
+        
     
     speech_output += "To learn more about a specific event, say something like 'Tell me more about event number 3'."
         
@@ -76,6 +82,7 @@ def get_event_detail(intent,session):
     session_attributes = {}
     reprompt_text = None
     should_end_session = True
+    speech_output = ""
     if "value" in intent["slots"]["EventNumber"]:
         event_number = intent["slots"]["EventNumber"]["value"]
         if str(event_number) in session.get('attributes',{}):
