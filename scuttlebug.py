@@ -58,10 +58,10 @@ def get_scuttlebug(intent):
     numberOfEvents = len(root[8])
     state = root[8][0].find('region_name').text
     city = root[8][0].find('city_name').text
-    speech_output = 'Here are the ' + str(len(root[8])) + ' most popular events going on in ' + city + ', ' + state + ' today. '
+    speech_output = 'Here are the ' + str(len(root[8])) + ' most popular events going on in ' + city + ', ' + state + ' today.\n '
     counter = 1
     for event in root[8]:
-        speech_output += '' + str(counter) + '. ' + event.find('title').text.split(':')[0] + '. ' 
+        speech_output += '' + str(counter) + '. ' + event.find('title').text.split(':')[0] + '.\n ' 
          #[event.find('title').text.split(':')[0], event.find('description').text, event.find('start_time').text]
         session_attributes[counter]=event.attrib['id'].split('@')[0]
         counter += 1
@@ -82,17 +82,20 @@ def get_event_detail(intent,session):
             eid = session['attributes'][str(event_number)]
             response = urllib2.urlopen('http://api.eventful.com/rest/events/get?app_key='+app_key+'&id=' + eid)
             root = ET.fromstring(response.read())
-            speech_output = "Here are the details for event number " + str(event_number) + ". "
+            speech_output = "Here are the details for event number " + str(event_number) + ".\n "
             if root.find('title').text:
-                speech_output += "Name: " + root.find('title').text + ". "
+                speech_output += "Name: " + root.find('title').text + ".\n "
             if root.find('description').text:
-                tree = ET.fromstring(root.find('description').text)
-                description_notags = ET.tostring(tree, encoding='utf8', method='text')
-                speech_output += "Description: " + description_notags + ". "
+                try:
+                    tree = ET.fromstring(root.find('description').text)
+                    description_notags = ET.tostring(tree, encoding='utf8', method='text')
+                    speech_output += "Description: " + description_notags + ". "
+                except:
+                    speech_output += "Description: " + root.find('description').text + ".\n "
             if root.find('venue_name').text:
-                speech_output += "Venue Name: " + root.find('venue_name').text + ". "
+                speech_output += "Venue Name: " + root.find('venue_name').text + ".\n "
             if root.find('start_time').text:
-                speech_output += "Start Time: " + root.find('start_time').text + ". "
+                speech_output += "Start Time: " + root.find('start_time').text + ".\n "
             speech_output += "To review the details for this event, look at the Scuttle Bug card in the Alexa App."
     
     return build_response(session_attributes, build_speechlet_response(
