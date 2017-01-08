@@ -1,6 +1,8 @@
 import urllib2
 import xml.etree.ElementTree as ET
 
+app_key = 'nDxVbWqD6dLp5Zrp'
+
 def lambda_handler(event, context):
     if (event["session"]["application"]["applicationId"] !=
             "amzn1.ask.skill.27a38ff5-cb81-4ecc-b4ad-4e297fdfc5fa"):
@@ -28,6 +30,8 @@ def on_intent(intent_request, session):
 
     if intent_name == "WhatsTheScuttleBugIntent":
         return get_scuttlebug(intent)
+    elif intent_name == "EventDetailsIntent":
+        return get_event_detail(intent,session)
     else:
         return get_error()
 
@@ -38,34 +42,63 @@ def on_session_ended(session_ended_request, session):
 def get_scuttlebug(intent):
     session_attributes = {}
     card_title = "Scuttlebug Events"
-    speech_output = "I'm not sure which city you wanted the Scuttle Bug for. " \
-                    "Please try again."
-    reprompt_text = "I'm not sure which city you wanted the Scuttle Bug for. "
+    speech_output = "Say something like, 'What\'s up in Raleigh. " 
+    reprompt_text = "Say something like, 'What\'s up in Raleigh. "
     should_end_session = False
-
-    print intent["slots"]["City"]["name"]
-    if "City" in intent["slots"]["City"]["name"]:
-        print "Found Raleigh"
-        city_name = intent["slots"]["City"]["value"]
-        app_key = 'nDxVbWqD6dLp5Zrp'
-        radius = '10'  # number of miles to search within
-        response = urllib2.urlopen('http://api.eventful.com/rest/events/search?app_key='+app_key+'&location='+city_name+'&sort_order=popularity&date=Today&within='+radius)
-        root = ET.fromstring(response.read())
-
-        numberOfEvents = len(root[8])
-        state = root[8][0].find('region_name').text
-        speech_output = 'There are ' + str(len(root[8])) + ' events going on in ' + city_name + ', ' + state + ' today. '
-        counter = 1
-        for event in root[8]:
-            speech_output += '' + str(counter) + '. ' + event.find('title').text.split(':')[0] + '. ' 
-             #[event.find('title').text.split(':')[0], event.find('description').text, event.find('start_time').text]
-            counter += 1
+    radius = '10'  # number of miles to search within
+    
+    if "value" in intent["slots"]["City"]:
+        city_id = intent["slots"]["City"]["value"].replace(" ","+")
+    elif "value" in intent["slots"]["ZipCode"]:
+        city_id = str(intent["slots"]["ZipCode"]["value"])
         
-        reprompt_text = ""
+    response = urllib2.urlopen('http://api.eventful.com/rest/events/search?app_key='+app_key+'&location='+city_id+'&sort_order=popularity&page_size=5&date=Today&within='+radius)
+    root = ET.fromstring(response.read())
 
+    numberOfEvents = len(root[8])
+    state = root[8][0].find('region_name').text
+    city = root[8][0].find('city_name').text
+    speech_output = 'Here are the ' + str(len(root[8])) + ' most popular events going on in ' + city + ', ' + state + ' today. '
+    counter = 1
+    for event in root[8]:
+        speech_output += '' + str(counter) + '. ' + event.find('title').text.split(':')[0] + '. ' 
+         #[event.find('title').text.split(':')[0], event.find('description').text, event.find('start_time').text]
+        session_attributes[counter]=event.attrib['id'].split('@')[0]
+        counter += 1
+    
+    speech_output += "To learn more about a specific event, say something like 'Tell me more about event number 3'."
+        
+    reprompt_text = ""
     return build_response(session_attributes, build_speechlet_response(
 card_title, speech_output, reprompt_text, should_end_session))
 
+def get_event_detail(intent,session):
+    session_attributes = {}
+    reprompt_text = None
+    should_end_session = True
+    if "value" in intent["slots"]["EventNumber"]:
+        event_number = intent["slots"]["EventNumber"]["value"]
+        if str(event_number) in session.get('attributes',{}):
+            eid = session['attributes'][str(event_number)]
+            response = urllib2.urlopen('http://api.eventful.com/rest/events/get?app_key='+app_key+'&id=' + eid)
+            root = ET.fromstring(response.read())
+            speech_output = "Here are the details for event number " + str(event_number) + ". "
+            if root.find('title').text:
+                speech_output += "Name: " + root.find('title').text + ". "
+            if root.find('description').text:
+                tree = ET.fromstring(root.find('description').text)
+                description_notags = ET.tostring(tree, encoding='utf8', method='text')
+                speech_output += "Description: " + description_notags + ". "
+            if root.find('venue_name').text:
+                speech_output += "Venue Name: " + root.find('venue_name').text + ". "
+            if root.find('start_time').text:
+                speech_output += "Start Time: " + root.find('start_time').text + ". "
+            speech_output += "To review the details for this event, look at the Scuttle Bug card in the Alexa App."
+    
+    return build_response(session_attributes, build_speechlet_response(
+            intent['name'], speech_output, reprompt_text, should_end_session))
+
+    
 def get_error():
     session_attributes = {}
     card_title = "Scuttle Bug"
