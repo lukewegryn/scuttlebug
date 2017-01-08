@@ -45,38 +45,39 @@ def get_scuttlebug(intent):
     speech_output = "Say something like, 'What\'s up in Raleigh. " 
     reprompt_text = "Say something like, 'What\'s up in Raleigh. "
     should_end_session = False
-    radius = '10'  # number of miles to search within
+    radius = '15'  # number of miles to search within
+    limit = '15'
+    date = 'Today'
     
     if "value" in intent["slots"]["City"]:
         city_id = intent["slots"]["City"]["value"].replace(" ","+")
     elif "value" in intent["slots"]["ZipCode"]:
         city_id = str(intent["slots"]["ZipCode"]["value"])
+    
+    if "value" in intent["slots"]["MaxEvents"]:
+        limit = intent["slots"]["MaxEvents"]["value"]
+    
+    if "value" in intent["slots"]["Date"]:
+        date = intent["slots"]["Date"]["value"]
         
-    response = urllib2.urlopen('http://api.eventful.com/rest/events/search?app_key='+app_key+'&sort_direction=descending&location='+city_id+'&sort_order=popularity&page_size=50&date=Today&within='+radius)
+    response = urllib2.urlopen('http://api.eventful.com/rest/events/search?app_key='+app_key+'&location='+city_id+'&sort_order=popularity&page_size='+limit+'&page_number=1&date='+date+'&within='+radius)
     root = ET.fromstring(response.read())
 
-    max_events = 5
-    numberOfEvents = max_events
-    if len(root[8]) < max_events:
-        numberOfEvents = len(root[8])
     state = root[8][0].find('region_name').text
     city = root[8][0].find('city_name').text
-    speech_output = 'Here are the ' + str(numberOfEvents) + ' most popular events going on in ' + city + ', ' + state + ' today.\n '
+    speech_output = 'Here are the ' + str(len(root[8])) + ' most popular events going on in ' + city + ', ' + state + ' today.\n '
     counter = 1
     for event in root[8]:
         speech_output += '' + str(counter) + '. ' + event.find('title').text.split(':')[0] + '.\n ' 
-         #[event.find('title').text.split(':')[0], event.find('description').text, event.find('start_time').text]
         session_attributes[counter]=event.attrib['id'].split('@')[0]
-        if counter == max_events:
-            break
         counter += 1
         
     
-    speech_output += "To learn more about a specific event, say something like 'Tell me more about event number 3'."
-        
+    speech_output += "You can ask to hear more about the events listed, for example you can say 'Tell me more about event number 3'."
+    cardText = speech_output
     reprompt_text = ""
     return build_response(session_attributes, build_speechlet_response(
-card_title, speech_output, reprompt_text, should_end_session))
+card_title, speech_output, cardText, reprompt_text, should_end_session))
 
 def get_event_detail(intent,session):
     session_attributes = {}
@@ -103,10 +104,12 @@ def get_event_detail(intent,session):
                 speech_output += "Venue Name: " + root.find('venue_name').text + ".\n "
             if root.find('start_time').text:
                 speech_output += "Start Time: " + root.find('start_time').text + ".\n "
-            speech_output += "To review the details for this event, look at the Scuttle Bug card in the Alexa App."
-    
+            speech_output += "To review the details and a link for this event, look at the Scuttle Bug card in the Alexa App."
+            cardText = speech_output
+            if root.find('url').text:
+                cardText = speech_output + '\nLink: ' + root.find('url').text
     return build_response(session_attributes, build_speechlet_response(
-            intent['name'], speech_output, reprompt_text, should_end_session))
+            intent['name'], speech_output, cardText,reprompt_text, should_end_session))
 
     
 def get_error():
@@ -116,9 +119,10 @@ def get_error():
     should_end_session = False
 
     speech_output = "I'm sorry, I don't understand that."
+    cardText = speech_output
 
     return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
+        card_title, speech_output, cardText, reprompt_text, should_end_session))
 
 
 def get_welcome_response():
@@ -127,10 +131,11 @@ def get_welcome_response():
     speech_output = "Welcome to Scuttle Bug. " \
                     "You can ask me, What's the Scuttle Bug in Atlanta?, " \
                     " or, What's up in San Francisco?"
+    cardText = speech_output
     reprompt_text = "Please ask me, What's the Scuttle Bug in Atlanta?"
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
-card_title, speech_output, reprompt_text, should_end_session))
+card_title, speech_output, cardText, reprompt_text, should_end_session))
 
 def build_response(session_attributes, speechlet_response):
     return {
@@ -139,7 +144,7 @@ def build_response(session_attributes, speechlet_response):
         "response": speechlet_response
 }
 
-def build_speechlet_response(title, output, reprompt_text, should_end_session):
+def build_speechlet_response(title, output, cardText, reprompt_text, should_end_session):
     return {
         "outputSpeech": {
             "type": "PlainText",
@@ -148,7 +153,7 @@ def build_speechlet_response(title, output, reprompt_text, should_end_session):
         "card": {
             "type": "Simple",
             "title": title,
-            "content": output
+            "content": cardText
         },
         "reprompt": {
             "outputSpeech": {

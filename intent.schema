@@ -1,0 +1,34 @@
+{
+  "intents": [
+    {
+      "intent": "WhatsTheScuttleBugIntent",
+      "slots": [
+        {
+          "name": "City",
+          "type": "AMAZON.US_CITY"
+        },
+        {
+          "name": "ZipCode",
+          "type": "AMAZON.NUMBER"
+        },
+        {
+          "name": "MaxEvents",
+          "type": "AMAZON.NUMBER"
+        },
+        {
+          "name": "Date",
+          "type": "LIST_OF_DATES"
+        }
+      ]
+    },
+    {
+      "intent": "EventDetailsIntent",
+      "slots": [
+        {
+          "name": "EventNumber",
+          "type": "AMAZON.NUMBER"
+        }
+      ]
+    }
+  ]
+}

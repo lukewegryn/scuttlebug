@@ -1,0 +1,19 @@
+WhatsTheScuttleBugIntent what's the scuttlebug in {City}
+WhatsTheScuttleBugIntent what's the scuttlebug in {City} {Date}
+WhatsTheScuttleBugIntent what's the scuttlebug in {City} {Date} limit {MaxEvents}
+WhatsTheScuttleBugIntent what's up in {City}
+WhatsTheScuttleBugIntent what's up in {City} {Date}
+WhatsTheScuttleBugIntent what's up in {City} {Date} limit {MaxEvents}
+WhatsTheScuttleBugIntent what's up in {ZipCode}
+WhatsTheScuttleBugIntent what's up in {ZipCode} {Date}
+WhatsTheScuttleBugIntent what's up in {ZipCode} {Date} limit {MaxEvents}
+WhatsTheScuttleBugIntent what's up near {ZipCode}
+WhatsTheScuttleBugIntent what's up near {ZipCode} {Date}
+WhatsTheScuttleBugIntent what's up near {ZipCode} {Date} limit {MaxEvents}
+WhatsTheScuttleBugIntent what's the scuttlebug in {ZipCode}
+WhatsTheScuttleBugIntent what's the scuttlebug in {ZipCode} {Date}
+WhatsTheScuttleBugIntent what's the scuttlebug in {ZipCode} {Date} limit {MaxEvents}
+EventDetailsIntent give me more information about event {EventNumber}
+EventDetailsIntent give me details about event number {EventNumber}
+EventDetailsIntent tell me more about event {EventNumber}
+EventDetailsIntent tell me more about event number {EventNumber}
